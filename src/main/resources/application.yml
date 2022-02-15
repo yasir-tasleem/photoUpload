@@ -1,0 +1,21 @@
+#AWS properties
+cloud:
+  aws:
+    region:
+      static: ap-south-1
+    stack:
+      auto: false
+    credentials:
+      accessKey: AKIATWDEARBFHVRWVXLB
+      secretKey: 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
+
+application:
+  bucket:
+    name: photoupload3pillar
+
+logging:
+  level:
+    com:
+      amazonaws:
+        util:
+          EC2MetadataUtils: error

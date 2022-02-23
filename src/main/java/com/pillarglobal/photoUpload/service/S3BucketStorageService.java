@@ -4,14 +4,21 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
+import com.pillarglobal.photoUpload.model.PhotoInfo;
+import com.pillarglobal.photoUpload.repository.PhotoRepository;
+import io.netty.util.internal.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 @Service
@@ -22,6 +29,10 @@ public class S3BucketStorageService {
     @Autowired
     private AmazonS3 amazonS3Client;
 
+    @Autowired
+    private PhotoRepository photoRepository;
+
+
     @Value("${application.bucket.name}")
     private String bucketName;
 
@@ -30,8 +41,7 @@ public class S3BucketStorageService {
     public String uploadFile(String keyName, MultipartFile file)  {
         try {
             ObjectMetadata metadata = new ObjectMetadata();
-            logger.info("file.getSize() :" + file.getContentType() );
-            logger.info("file.getContentType() :" + file.getContentType());
+
             if(!file.isEmpty() && (file.getContentType().equals("image/jpeg"))
                     || (file.getContentType().equals("image/png"))
                     || (file.getContentType().equals("image/jpg"))
@@ -40,8 +50,16 @@ public class S3BucketStorageService {
                 photoGuid = java.util.UUID.randomUUID();
                 logger.info("photoGuid : " + photoGuid);
                 metadata.setContentLength(file.getSize());
+                metadata.setContentType(file.getContentType());
                 amazonS3Client.putObject(bucketName, String.valueOf(photoGuid), file.getInputStream(), metadata);
+                PhotoInfo photoInfo = new PhotoInfo();
+                photoInfo.setPhotoName(file.getOriginalFilename());
+                photoInfo.setPhotoGuid(String.valueOf(photoGuid));
+                photoRepository.save(photoInfo);
+
                 logger.info(String.valueOf(amazonS3Client.getUrl("bucket","hi")));
+//                s3Client.putObject(new PutObjectRequest("your-bucket", "some-path/PutObjectRequestsome-key.jpg", new File("somePath/someKey.jpg")).withCannedAcl(CannedAccessControlList.PublicRead))
+//                s3Client.getResourceUrl("your-bucket", "some-path/some-key.jpg");
                 return "File uploaded: " + photoGuid;
             }
             else throw new Exception("Image not accepted");
@@ -59,4 +77,24 @@ public class S3BucketStorageService {
         }
         return "File not uploaded: " + keyName;
     }
+
+    public String getLines(Mono<FilePart> filePartMono){
+        try{
+            ObjectMetadata objectMetadata = new ObjectMetadata();
+            objectMetadata.setContentType(filePartMono.);
+            photoGuid = java.util.UUID.randomUUID();
+            logger.info("photoGuid : " + photoGuid);
+            amazonS3Client.putObject(bucketName,String.valueOf(photoGuid),filePartMono,objectMetadata);
+                    filePartMono
+                    .doOnNext(fp -> System.out.println("Received File : " + fp.filename()))
+                    .flatMap(fp -> fp.transferTo(Paths.get(fp.filename())))
+                    .then();
+
+        }catch (Exception e){
+            logger.error("IOException: " + e.getMessage());
+            return "File not uploaded: " + e.getMessage();
+        }
+
+    };
+
 }

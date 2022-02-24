@@ -4,6 +4,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
+import com.amazonaws.util.IOUtils;
 import com.pillarglobal.photoUpload.model.PhotoInfo;
 import com.pillarglobal.photoUpload.repository.PhotoRepository;
 import io.netty.util.internal.StringUtil;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
@@ -78,23 +80,21 @@ public class S3BucketStorageService {
         return "File not uploaded: " + keyName;
     }
 
-    public String getLines(Mono<FilePart> filePartMono){
-        try{
-            ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentType(filePartMono.);
-            photoGuid = java.util.UUID.randomUUID();
-            logger.info("photoGuid : " + photoGuid);
-            amazonS3Client.putObject(bucketName,String.valueOf(photoGuid),filePartMono,objectMetadata);
-                    filePartMono
-                    .doOnNext(fp -> System.out.println("Received File : " + fp.filename()))
-                    .flatMap(fp -> fp.transferTo(Paths.get(fp.filename())))
-                    .then();
-
-        }catch (Exception e){
-            logger.error("IOException: " + e.getMessage());
-            return "File not uploaded: " + e.getMessage();
-        }
-
-    };
+//    public String uploadUsingMono(Mono<FilePart> filePartMono){
+//        try{
+//            ObjectMetadata objectMetadata = new ObjectMetadata();
+//            photoGuid = java.util.UUID.randomUUID();
+//            logger.info("photoGuid : " + photoGuid);
+//                    filePartMono
+//                    .flatMap(fp -> fp.transferTo(Paths.get(fp.filename())))
+//                    .then();
+//            amazonS3Client.putObject(bucketName,String.valueOf(photoGuid),filePartMono,objectMetadata);
+//            return "File uploaded: " + photoGuid;
+//
+//        }catch (Exception e){
+//            logger.error("IOException: " + e.getMessage());
+//            return "File not uploaded: " + e.getMessage();
+//        }
+//    }
 
 }

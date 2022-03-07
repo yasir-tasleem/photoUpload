@@ -21,6 +21,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -34,10 +35,10 @@ public class S3BucketStorageService {
     private final Logger logger = LoggerFactory.getLogger(S3BucketStorageService.class);
 
     @Autowired
-    private AmazonS3 amazonS3Client;
+    AmazonS3 amazonS3Client;
 
     @Autowired
-    private PhotoRepository photoRepository;
+    PhotoRepository photoRepository;
 
     private final Path basePath = Paths.get("/Users/mohammad.yasir/Documents/uploads");
 
@@ -97,18 +98,19 @@ public class S3BucketStorageService {
         try {
             ObjectMetadata metadata = new ObjectMetadata();
             File file = createFileObject(basePath + "/" + fileName);
-            FileInputStream fileInputStream = new FileInputStream(file);
+
 
             final Tika tika = new Tika();
             String type = tika.detect(file);
-            long size = Files.size(Paths.get(basePath + "/" + fileName));
+            long size = getFileSize(basePath + "/" + fileName);
 
-            if (type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/jpg") && size <= 20000) {
+            if ((type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/jpg")) && size <= 20000) {
                 metadata.setContentLength(file.length());
                 PhotoInfo photoInfo = new PhotoInfo();
                 photoInfo.setPhotoName(orgFileName);
                 photoInfo.setPhotoGuid(String.valueOf(photoGuid));
                 photoRepository.save(photoInfo);
+                FileInputStream fileInputStream = createFileInputObject(file);
                 amazonS3Client.putObject(bucketName, String.valueOf(photoGuid), fileInputStream, metadata);
                 amazonS3Client.setObjectAcl(bucketName, String.valueOf(photoGuid), CannedAccessControlList.PublicRead);
                 URL s3Url = amazonS3Client.getUrl(bucketName, String.valueOf(photoGuid));
@@ -133,5 +135,13 @@ public class S3BucketStorageService {
 
     public File createFileObject(String path){
         return new File(path);
+    }
+
+    public FileInputStream createFileInputObject(File file) throws FileNotFoundException {
+        return new FileInputStream(file);
+    }
+
+    public long getFileSize(String fileName) throws IOException {
+        return Files.size(Paths.get(fileName));
     }
 }
